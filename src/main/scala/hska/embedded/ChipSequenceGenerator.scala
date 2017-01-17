@@ -1,6 +1,5 @@
 package hska.embedded
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 object ChipSequenceGenerator {
@@ -86,5 +85,4 @@ object ChipSequenceGenerator {
     }
     resultList.toList
   }
-
 }

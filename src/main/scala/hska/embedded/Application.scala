@@ -1,10 +1,7 @@
 package hska.embedded
 
 import java.io.{FileNotFoundException, IOException}
-import java.time.{Duration, Instant}
-
 import com.typesafe.scalalogging.LazyLogging
-
 import scala.io.Source
 
 object Application extends LazyLogging {
@@ -61,7 +58,7 @@ object Application extends LazyLogging {
   }
 
   def main(args: Array[String]): Unit = {
-
+    logger.info("Starting program...")
     if (args.length <= 0) {
       println("No filename given. Will exit not.")
     } else {
@@ -73,11 +70,10 @@ object Application extends LazyLogging {
         
 
         val resultSet: Seq[DecodedInformation] = decode(entries);
-
         //resultSet.foreach(println)
       } catch {
-        case ex: FileNotFoundException => println(s"File $filename cannot be found")
-        case e: IOException => println(s"File $filename cannot be read")
+        case ex: FileNotFoundException => logger.error(s"File $filename cannot be found")
+        case ex: IOException => logger.error(s"File $filename cannot be read")
       }
     }
   }
