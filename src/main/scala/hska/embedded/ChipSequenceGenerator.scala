@@ -1,12 +1,15 @@
 package hska.embedded
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 object ChipSequenceGenerator {
 
+
   val satelliteBitMap: Seq[(Int, Int)] = Seq((2, 6), (3, 7), (4, 8), (5, 9), (1, 9), (2, 10), (1, 8), (2, 9), (3, 10), (2, 3), (3, 4), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (1, 4), (2, 5), (3, 6), (4, 7), (5, 8), (6, 9), (1, 3), (4, 6))
   val defaultUpperBitSequence: Array[Int] = Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
   val defaultLowerBitSequence: Array[Int] = Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+  var allSeq: Array[List[Int]] = _
 
   def generate(): Array[List[Int]] = {
     val allSequences: Array[List[Int]] = new Array(24)
@@ -15,6 +18,17 @@ object ChipSequenceGenerator {
       allSequences(i - 1) = chipSequence
     }
     allSequences
+  }
+
+  def negateZeros(list: Array[List[Int]]): Array[List[Int]] = {
+    val newArray = new Array[List[Int]](list.size)
+    for ((satellite, index) <- list.zipWithIndex) {
+      val buffer: ListBuffer[Int] = new ListBuffer[Int]
+      satellite.map(e => if (e == 0) {buffer += -1} else {buffer += 1})
+      newArray(index) = buffer.toList
+    }
+
+    newArray
   }
 
   def calcUpperSequence(bitSequence: Array[Int], depth: Int): List[Int] = {

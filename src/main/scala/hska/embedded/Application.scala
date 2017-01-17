@@ -1,23 +1,29 @@
 package hska.embedded
 
 import java.io.{FileNotFoundException, IOException}
+import java.time.{Duration, Instant}
+
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.io.Source
 
-object Application {
+object Application extends LazyLogging {
+
+  val max = 1023 - 3 * 65
+  val min = -1023 + 3 * 65
 
   def decodeInformation(chipSequence: List[Int], delta: Int, sumSignalEntryList: Array[Int], satelliteID: Int): Option[DecodedInformation] = {
-    var scalarProduct = 0;
-    for (bitPosition <- 0 until chipSequence.length) {
+    var scalarProduct = 0
+    for (bitPosition <- chipSequence.indices) {
       val position = (bitPosition + delta) % chipSequence.length
       scalarProduct += chipSequence(position) * sumSignalEntryList(bitPosition)
     }
 
-    scalarProduct = scalarProduct / 10
-
-    if (scalarProduct >= 63) {
+    if (scalarProduct < max && scalarProduct > min) {
+       None
+    } else if (scalarProduct >= max) {
       Some(new DecodedInformation(satelliteID, 1, delta))
-    } else if (scalarProduct <= -65) {
+    } else if (scalarProduct <= min) {
       Some(new DecodedInformation(satelliteID, 0, delta))
     } else {
       None
@@ -25,38 +31,54 @@ object Application {
   }
 
   def decode(entries: Array[Int]): List[DecodedInformation] = {
+    val resultList = scala.collection.mutable.MutableList[DecodedInformation]()
 
-    val chipSequences: Array[List[Int]] = ChipSequenceGenerator.generate();
+    logger.debug("Generating Chip Sequences")
+    val chipSequencesWithZeros: Array[List[Int]] = ChipSequenceGenerator.generate
+    val chipSequences: Array[List[Int]] = ChipSequenceGenerator.negateZeros(chipSequencesWithZeros)
 
-    val resultList: List[DecodedInformation] = Nil
+    logger.debug("Start Decoding Procedure")
     for ((chipSequence, satelliteID) <- chipSequences.zipWithIndex) {
-      val calcSequence = chipSequence.map(e => if(e == 0) { -1 } else {1})
+      logger.debug(s"Decoding Satellite ${satelliteID}")
       for (delta <- 0 until 1023) {
-        val decodedInformation: Option[DecodedInformation] = decodeInformation(calcSequence, delta, entries, satelliteID)
+        val decodedInformation: Option[DecodedInformation] = decodeInformation(chipSequence, delta, entries, satelliteID)
 
         if (decodedInformation.isDefined) {
-          println(decodedInformation.get.toString())
+          println(decodedInformation.get)
         }
       }
     }
-    null
+    resultList.toList
+  }
+
+  def dupliateEntriesMethod(list: Array[Int]): Array[Int] = {
+    val resultArray: Array[Int] = new Array[Int](list.length * 2);
+    for((entry, index) <- list.zipWithIndex) {
+      resultArray(index) = list(index)
+      resultArray(index + list.length) = list(index)
+    }
+    resultArray
   }
 
   def main(args: Array[String]): Unit = {
 
-    val filename: String = args(0)
+    if (args.length <= 0) {
+      println("No filename given. Will exit not.")
+    } else {
+      val filename: String = args(0)
+      try {
+        val fileContents = Source.fromFile(filename).getLines.mkString
+        val entries: Array[Int] = fileContents.split(" ").map(_.toInt)
+        val entriesDup: Array[Int] = dupliateEntriesMethod(entries)
+        
 
-    try {
-      val fileContents = Source.fromFile(filename).getLines.mkString
-      val entries: Array[Int] = fileContents.split(" ").map(_.toInt)
-      val resultSet: Seq[DecodedInformation] = decode(entries);
-    } catch {
-      case ex: FileNotFoundException => println(s"File ${
-        filename
-      } cannot be found")
-      case e: IOException => println(s"File ${
-        filename
-      } cannot be read")
+        val resultSet: Seq[DecodedInformation] = decode(entries);
+
+        //resultSet.foreach(println)
+      } catch {
+        case ex: FileNotFoundException => println(s"File $filename cannot be found")
+        case e: IOException => println(s"File $filename cannot be read")
+      }
     }
   }
 }
