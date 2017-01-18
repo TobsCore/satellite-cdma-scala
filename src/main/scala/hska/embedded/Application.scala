@@ -6,7 +6,6 @@ import scala.io.Source
 
 object Application extends LazyLogging {
 
-
   val max: Int = 1023 - 3 * 65
   val min: Int = -1023 + 3 * 65
 
