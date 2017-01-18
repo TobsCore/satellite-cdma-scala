@@ -6,6 +6,7 @@ import scala.io.Source
 
 object Application extends LazyLogging {
 
+
   val max: Int = 1023 - 3 * 65
   val min: Int = -1023 + 3 * 65
 
@@ -17,11 +18,12 @@ object Application extends LazyLogging {
     }
 
     if (scalarProduct < max && scalarProduct > min) {
-       None
+      // Put this statement in the beginning to improve performance as this is the most common case to reach in this method.
+      None
     } else if (scalarProduct >= max) {
-      Some(new DecodedInformation(satelliteID, 1, delta))
+      Some(new DecodedInformation(satelliteID, 1, 1023 - delta))
     } else if (scalarProduct <= min) {
-      Some(new DecodedInformation(satelliteID, 0, delta))
+      Some(new DecodedInformation(satelliteID, 0, 1023 - delta))
     } else {
       None
     }
@@ -48,7 +50,7 @@ object Application extends LazyLogging {
 
   def dupliateEntriesMethod(list: Array[Int]): Array[Int] = {
     val resultArray: Array[Int] = new Array[Int](list.length * 2)
-    for((_, index) <- list.zipWithIndex) {
+    for ((_, index) <- list.zipWithIndex) {
       resultArray(index) = list(index)
       resultArray(index + list.length) = list(index)
     }
@@ -66,7 +68,7 @@ object Application extends LazyLogging {
         logger.info(s"Reading file $filename")
         val entries: Array[Int] = fileContents.split(" ").map(_.toInt)
         val entriesDup: Array[Int] = dupliateEntriesMethod(entries)
-        
+
 
         decode(entriesDup)
         //val resultSet: Seq[DecodedInformation] = decode(entriesDup);
