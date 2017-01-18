@@ -73,7 +73,6 @@ object Application extends LazyLogging {
 
 
         decode(entriesDup)
-        logger.info("Exiting Program...")
         //val resultSet: Seq[DecodedInformation] = decode(entriesDup);
         //resultSet.foreach(println)
       } catch {
