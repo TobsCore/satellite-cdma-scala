@@ -1,11 +1,13 @@
 package hska.embedded
 
 import java.io.{FileNotFoundException, IOException}
+
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.io.Source
 
 object Application extends LazyLogging {
-
 
   val max: Int = 1023 - 3 * 65
   val min: Int = -1023 + 3 * 65
@@ -29,7 +31,7 @@ object Application extends LazyLogging {
     }
   }
 
-  def decode(entries: Array[Int]): List[DecodedInformation] = {
+  def decode(sumSignals: Array[Int]): List[DecodedInformation] = {
     val resultList = scala.collection.mutable.MutableList[DecodedInformation]()
 
     logger.debug("Generating Chip Sequences")
@@ -37,13 +39,10 @@ object Application extends LazyLogging {
     val chipSequences: Array[List[Int]] = ChipSequenceGenerator.negateZeros(chipSequencesWithZeros)
 
     logger.debug("Start Decoding Procedure")
+    val system = ActorSystem("DecoderSystem")
     chipSequences.zipWithIndex.foreach { case (chipSequence, satelliteID) =>
-      logger.debug(s"Decoding Satellite $satelliteID")
-      (0 until 1023).foreach { delta =>
-        val decodedInformation: Option[DecodedInformation] = decodeInformation(chipSequence, delta, entries, satelliteID)
-
-        if (decodedInformation.isDefined) println(decodedInformation.get)
-      }
+      val worker = system.actorOf(Props(new Decoder(chipSequence, satelliteID, sumSignals)), name = s"DecodeActorForSatellite$satelliteID")
+      worker ! "decode"
     }
     resultList.toList
   }
@@ -66,11 +65,12 @@ object Application extends LazyLogging {
       try {
         val fileContents = Source.fromFile(filename).getLines.mkString
         logger.info(s"Reading file $filename")
-        val entries: Array[Int] = fileContents.split(" ").map(_.toInt)
-        val entriesDup: Array[Int] = dupliateEntriesMethod(entries)
+        val sumSignals: Array[Int] = fileContents.split(" ").map(_.toInt)
+        val entriesDup: Array[Int] = dupliateEntriesMethod(sumSignals)
 
 
         decode(entriesDup)
+        logger.info("Exiting Program...")
         //val resultSet: Seq[DecodedInformation] = decode(entriesDup);
         //resultSet.foreach(println)
       } catch {
