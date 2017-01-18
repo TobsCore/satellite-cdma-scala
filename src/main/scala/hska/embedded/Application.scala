@@ -4,6 +4,7 @@ import java.io.{FileNotFoundException, IOException}
 
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
+import hska.embedded.Reaper.WatchMe
 
 import scala.io.Source
 
@@ -19,9 +20,11 @@ object Application extends LazyLogging {
 
     logger.debug("Start Decoding Procedure")
     val system = ActorSystem("DecoderSystem")
+    val reaper = system.actorOf(Props(new ProductionReaper()))
     chipSequences.zipWithIndex.foreach { case (chipSequence, satelliteID) =>
       val worker = system.actorOf(Props(new Decoder(chipSequence, satelliteID, sumSignals)), name = s"DecodeActorForSatellite$satelliteID")
       worker ! "decode"
+      reaper ! WatchMe(worker)
     }
     resultList.toList
   }
